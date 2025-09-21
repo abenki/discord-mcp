@@ -1,12 +1,17 @@
 import asyncio
 import os
+from typing import Optional
 from dotenv import load_dotenv
 from bot.bot import MCPBot
 from utils.config_validator import ConfigValidator
 
 
-async def main():
-    """Main entry point for the Discord MCP bot."""
+def main() -> None:
+    """Main entry point for the Discord MCP bot.
+
+    This function loads the environment variables, validates the configuration,
+    and starts the bot.
+    """
     load_dotenv()
 
     # Validate configuration before starting
@@ -17,12 +22,12 @@ async def main():
         print("Please fix the configuration and try again.")
         return
 
-    DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+    DISCORD_BOT_TOKEN: Optional[str] = os.getenv("DISCORD_BOT_TOKEN")
 
     # Initialize and start the bot
     bot = MCPBot()
-    await bot.start_bot(DISCORD_BOT_TOKEN)
+    asyncio.run(bot.start_bot(DISCORD_BOT_TOKEN))
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

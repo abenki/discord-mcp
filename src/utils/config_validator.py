@@ -1,27 +1,32 @@
 """Configuration validation utilities."""
 import os
 import requests
+from typing import Optional, Dict, Any
 
 
 class ConfigValidator:
     """Validates bot configuration and external service connectivity."""
 
     @staticmethod
-    def validate_environment():
-        """Validate all required environment variables and configurations."""
+    def validate_environment() -> bool:
+        """Validate all required environment variables and configurations.
+
+        Returns:
+            bool: True if validation passes, raises an exception otherwise.
+        """
         print("🔍 Validating configuration...")
 
         # Check Discord token
-        discord_token = os.getenv("DISCORD_BOT_TOKEN")
+        discord_token: Optional[str] = os.getenv("DISCORD_BOT_TOKEN")
         if not discord_token:
             raise ValueError(
                 "❌ DISCORD_BOT_TOKEN environment variable is required!")
         print("✅ Discord bot token found")
 
         # Check Ollama configuration
-        ollama_url = os.getenv(
+        ollama_url: str = os.getenv(
             "OLLAMA_API_URL", "http://localhost:11434/api/generate")
-        ollama_model = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")
+        ollama_model: str = os.getenv("OLLAMA_MODEL", "qwen2.5:14b")
 
         print(f"🔧 Ollama API URL: {ollama_url}")
         print(f"🤖 Ollama Model: {ollama_model}")
@@ -33,23 +38,28 @@ class ConfigValidator:
         return True
 
     @staticmethod
-    def _test_ollama_connection(api_url, model_name):
-        """Test connection to Ollama API."""
+    def _test_ollama_connection(api_url: str, model_name: str) -> None:
+        """Test connection to Ollama API.
+
+        Args:
+            api_url: The URL of the Ollama API.
+            model_name: The name of the model to test.
+        """
         print("🔌 Testing Ollama connection...")
 
         try:
             # Extract base URL for health check
-            base_url = api_url.replace("/api/generate", "")
+            base_url: str = api_url.replace("/api/generate", "")
 
             # Test basic connectivity
-            health_response = requests.get(f"{base_url}/api/tags", timeout=5)
+            health_response: requests.Response = requests.get(f"{base_url}/api/tags", timeout=5)
             if health_response.status_code != 200:
                 raise ConnectionError(f"Ollama server not responding (status: {
                                       health_response.status_code})")
 
             # Check if the specified model is available
-            available_models = health_response.json().get("models", [])
-            model_names = [model.get("name", "") for model in available_models]
+            available_models: list = health_response.json().get("models", [])
+            model_names: list = [model.get("name", "") for model in available_models]
 
             if model_name not in model_names:
                 print(f"⚠️  Model '{

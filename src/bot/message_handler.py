@@ -1,4 +1,7 @@
 import traceback
+from typing import Optional, Dict, Any
+from discord.ext import commands
+from discord import Message
 from llm.client import LLMClient
 from llm.prompts import TOOL_PROMPT
 from utils.channel_resolver import ChannelResolver
@@ -7,13 +10,22 @@ from utils.channel_resolver import ChannelResolver
 class MessageHandler:
     """Handles processing of Discord messages."""
 
-    def __init__(self, bot):
-        self.bot = bot
-        self.llm_client = LLMClient()
-        self.channel_resolver = ChannelResolver(bot)
+    def __init__(self, bot: commands.Bot) -> None:
+        """Initialize the MessageHandler with the bot instance.
 
-    async def handle_message(self, message):
-        """Main message handling entry point."""
+        Args:
+            bot: The bot instance.
+        """
+        self.bot: commands.Bot = bot
+        self.llm_client: LLMClient = LLMClient()
+        self.channel_resolver: ChannelResolver = ChannelResolver(bot)
+
+    async def handle_message(self, message: Message) -> None:
+        """Main message handling entry point.
+
+        Args:
+            message: The Discord message to handle.
+        """
         # Check if we should process this message
         if not await self._should_process_message(message):
             return
@@ -21,8 +33,15 @@ class MessageHandler:
         # Process the message
         await self._process_user_message(message)
 
-    async def _should_process_message(self, message):
-        """Check if the bot should process this message."""
+    async def _should_process_message(self, message: Message) -> bool:
+        """Check if the bot should process this message.
+
+        Args:
+            message: The Discord message to check.
+
+        Returns:
+            bool: True if the message should be processed, False otherwise.
+        """
         if message.author == self.bot.user:
             print("Ignoring message from bot")
             return False
@@ -34,21 +53,25 @@ class MessageHandler:
         print("Bot user was mentioned!")
         return True
 
-    async def _process_user_message(self, message):
-        """Process a message that mentions the bot."""
+    async def _process_user_message(self, message: Message) -> None:
+        """Process a message that mentions the bot.
+
+        Args:
+            message: The Discord message to process.
+        """
         print(f"Bot mentioned! Processing message: {message.content}")
         print(f"Clean content: {message.clean_content}")
 
         try:
             # Create prompt and get LLM response
-            user_message = message.clean_content
+            user_message: str = message.clean_content
             print(f"User message extracted: '{user_message}'")
 
-            prompt = TOOL_PROMPT.format(user_message=user_message)
+            prompt: str = TOOL_PROMPT.format(user_message=user_message)
             print("Prompt created successfully")
 
             print("About to call LLM...")
-            llm_response = await self.llm_client.get_response(prompt)
+            llm_response: Optional[Dict[str, Any]] = await self.llm_client.get_response(prompt)
             print("LLM call completed")
 
             # Process the response
@@ -59,8 +82,13 @@ class MessageHandler:
             traceback.print_exc()
             await message.channel.send(f"Sorry, I encountered an error: {str(e)}")
 
-    async def _process_llm_response(self, message, llm_response):
-        """Process the response from the LLM."""
+    async def _process_llm_response(self, message: Message, llm_response: Optional[Dict[str, Any]]) -> None:
+        """Process the response from the LLM.
+
+        Args:
+            message: The original Discord message.
+            llm_response: The response from the LLM.
+        """
         print(f"LLM Response type: {type(llm_response)}")
         print(f"LLM Response: {llm_response}")
 
@@ -80,8 +108,13 @@ class MessageHandler:
             print(f"Response content: {llm_response}")
             await message.channel.send("I got a response I don't understand from the model.")
 
-    async def _handle_tool_call(self, message, llm_response):
-        """Handle a tool call from the LLM."""
+    async def _handle_tool_call(self, message: Message, llm_response: Dict[str, Any]) -> None:
+        """Handle a tool call from the LLM.
+
+        Args:
+            message: The original Discord message.
+            llm_response: The response from the LLM.
+        """
         print("LLM returned a tool call!")
         messaging_cog = self.bot.get_cog("MessagingCog")
         print(f"MessagingCog found: {messaging_cog is not None}")
@@ -92,19 +125,18 @@ class MessageHandler:
             return
 
         try:
-            channel_identifier = llm_response["channel"]
-            message_text = llm_response["message"]
+            channel_identifier: str = llm_response["channel"]
+            message_text: str = llm_response["message"]
             print(f"Message: {message_text}")
 
             # Resolve channel
-            channel_id = await self.channel_resolver.resolve_channel(channel_identifier)
+            channel_id: Optional[int] = await self.channel_resolver.resolve_channel(channel_identifier)
 
             if channel_id is None:
                 await message.channel.send(f"Sorry, I couldn't find a channel named '{channel_identifier}'")
                 return
 
-            print(f"Attempting to send message '{
-                  message_text}' to channel {channel_id}")
+            print(f"Attempting to send message '{message_text}' to channel {channel_id}")
             await messaging_cog.send_discord_message(channel_id, message_text)
             await message.add_reaction("✅")
             print("Message sent successfully!")
