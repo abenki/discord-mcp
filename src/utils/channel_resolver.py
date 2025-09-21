@@ -1,7 +1,6 @@
 """Utility for resolving channel names to IDs."""
 from typing import Optional
 from discord.ext import commands
-from discord import Guild, TextChannel
 
 
 class ChannelResolver:

@@ -1,6 +1,4 @@
 from discord.ext import commands
-from discord import ChannelType
-from typing import Optional
 
 
 class MessagingCog(commands.Cog):
